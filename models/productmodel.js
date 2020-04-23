@@ -21,13 +21,16 @@ const productSchema = new mongoose.Schema({
     description: {
         type: String
     },
-    // likes: {
-    //     type: Array
-    // },
     insertedAt: {
         type: Date,
         default: Date.now
     },
+    likes: {
+        type: Number
+    },
+    likedBy: {
+        type: Array
+    }
 });
 
 module.exports = mongoose.model('Products', productSchema);

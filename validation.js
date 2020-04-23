@@ -50,19 +50,14 @@ const editProductValidation = data => {
     return schema.validate(data);
 }
 
-//Delete product validation
-const deleteProductValidation = data => {
+//Edit product Like validation
+const editProductLikeValidation = data => {
     const schema = Joi.object().keys({
         _id: Joi.objectId,
-        name: Joi.string().min(3).max(255).required(),
-        category: Joi.string().min(3).max(255).required(),
-        price: Joi.number().min(1).required(),
-        quantity: Joi.number().min(1).required(),
-        description: Joi.string().min(3).max(255),
-        insertedAt: Joi.date()
+        likes: Joi.number()
     });
     return schema.validate(data);
 }
 
 
-module.exports = { registerValidation, loginValidation, insertProductValidation, editProductValidation, deleteProductValidation }
+module.exports = { registerValidation, loginValidation, insertProductValidation, editProductValidation, editProductLikeValidation }

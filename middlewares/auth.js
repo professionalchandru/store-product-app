@@ -11,7 +11,7 @@ module.exports = function auth(req, res, next) {
     } catch (err) {
         if (err) {
             console.log(err);
-            res.status(400).send('Invalid Token');
+            res.status(400).send('Oops...! Session Expired. Please login again');
         }
     }
 }
