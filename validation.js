@@ -31,7 +31,9 @@ const insertProductValidation = data => {
         price: Joi.number().min(1).required(),
         quantity: Joi.number().min(1).required(),
         description: Joi.string().min(3).max(255),
-        insertedAt: Joi.date()
+        insertedAt: Joi.date(),
+        likes: Joi.number(),
+        likedBy: Joi.array()
     });
     return schema.validate(data);
 }

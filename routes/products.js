@@ -1,4 +1,6 @@
 const router = require('express').Router();
+const redis = require('redis');
+const client = redis.createClient();
 
 //Import product model for mongoose schema
 const productModel = require('../models/productmodel');
@@ -90,7 +92,7 @@ router.patch('/:name/:like', auth, async(req, res) => {
 
             //Check user if already liked
             const email = req.user.email
-            const likedUser = await productModel.findOne({ likedBy: email });
+            const likedUser = await productModel.findOne({ name: req.params.name, likedBy: email });
 
             if (likedUser) {
                 return res.status(400).send('You are already liked')
