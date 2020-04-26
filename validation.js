@@ -53,13 +53,13 @@ const editProductValidation = data => {
 }
 
 //Edit product Like validation
-const editProductLikeValidation = data => {
-    const schema = Joi.object().keys({
-        _id: Joi.objectId,
-        likes: Joi.number()
-    });
-    return schema.validate(data);
-}
+// const editProductLikeValidation = data => {
+//     const schema = Joi.object().keys({
+//         _id: Joi.objectId,
+//         likes: Joi.number()
+//     });
+//     return schema.validate(data);
+// }
 
 
-module.exports = { registerValidation, loginValidation, insertProductValidation, editProductValidation, editProductLikeValidation }
+module.exports = { registerValidation, loginValidation, insertProductValidation, editProductValidation }

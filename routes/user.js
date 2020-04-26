@@ -14,6 +14,11 @@ router.get('/', (req, res) => {
     res.send('you are in user');
 });
 
+//new user register view
+router.get('/register', (req, res, next) => {
+    res.render('register');
+})
+
 // New user register
 router.post('/register', async(req, res) => {
     //Generate hash password
@@ -28,18 +33,20 @@ router.post('/register', async(req, res) => {
 
     //Validation applied here
     const validate = registerValidation(user.toObject());
+    // console.log(validate.error)
 
     //Check existing user
-    const userExist = userModel.findOne({ email: user.email });
-    if (!userExist) return res.status(400).send('User is already exist');
+    const userExist = await userModel.findOne({ email: req.body.email });
+    if (userExist) {
+        // console.log(userExist)
+        return res.status(400).render('register', { error: 'User is already exist' });
+    }
 
     if (validate.error == null) {
         try {
-
             const newUser = await user.save();
-            console.log(newUser);
-            res.status(200).send(newUser);
-
+            // res.status(200).send(newUser);
+            res.status(200).render('register', { success: newUser.email + ' is added sucessfully' })
         } catch (err) {
             if (err) {
                 console.log(err)
@@ -48,7 +55,8 @@ router.post('/register', async(req, res) => {
         }
     } else {
         console.log(validate.error.message);
-        res.status(400).send(validate.error.message);
+        // res.status(400).send(validate.error.message);
+        res.status(400).render('register', { error: validate.error.message });
     }
 });
 
@@ -61,20 +69,29 @@ router.post('/login', async(req, res) => {
     if (validate.error == null) {
         //Find existing user
         const user = await userModel.findOne({ email: req.body.email });
-        if (!user) res.status(400).send("User doesn't exist");
-
+        // if (!user) res.status(400).send("User doesn't exist");
+        if (!user) {
+            return res.render('login', { error: "User doesn't exist" });
+        }
         //Check password
         const password = await bcrypt.compare(req.body.password, user.password);
-        if (!password) res.status(400).send("Password is Invalid");
+        if (!password) {
+            return res.render('login', { error: "Password Invalid" });
+        }
 
         const token = jwt.sign({ _id: user._id, email: user.email }, process.env.TOKEN_SECRET, { expiresIn: '5h' });
-        res.header('auth-token', token).send(token);
+        // let re = res.header('auth-token', token)        
+        res.cookie('token', token, { maxAge: 3600 * 1000 });
+        res.redirect('/api/products/search');
+        res.end()
     } else {
         console.log(validate.error.message)
-        res.status(400).send(validate.error.message)
+            // res.status(400).send(validate.error.message)
+        res.status(400).render('login', { error: validate.error.message });
     }
 
 });
+
 
 
 module.exports = router;
