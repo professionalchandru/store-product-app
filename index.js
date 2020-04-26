@@ -1,11 +1,17 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv').config()
+const dotenv = require('dotenv').config();
+const redis = require('redis');
+const client = redis.createClient();
 const app = express();
+
+//redis server connection
+client.on('connect', () => console.log('redis server is up...'));
 
 //middlewares
 app.use(express.json());
 mongoose.set('useCreateIndex', true);
+
 
 //Import routes
 const userRoute = require('./routes/user');

@@ -25,9 +25,9 @@ const productSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    likes: {
-        type: Number
-    },
+    // likes: {
+    //     type: Number
+    // },
     likedBy: {
         type: Array
     }

@@ -73,47 +73,26 @@ router.post('/insert', auth, async(req, res) => {
 router.get('/view', auth, async(req, res) => {
     try {
         const viewProducts = await productModel.find().sort({ price: -1 })
-        const docCount = await productModel.find().countDocuments()
         if (!viewProducts) return res.status(200).send('No product is available');
 
-        let products = {};
-        let key = 'product'
-        products[key] = [];
-
-        for (let i = 0; i < docCount; i++) {
-            client.get(viewProducts[i].name, (err, obj) => {
-                if (err) console.log(err)
-                else {
-                    details = {
-                        "product": viewProducts[i],
-                        "likes": obj
-                    }
-                    products[key].push(details);
-                }
-                console.log(products)
+        let products = [];
+        viewProducts.forEach(product => {
+                client.get(product.name, (err, obj) => {
+                        if (err) console.log(err)
+                        else {
+                            // res.json({ Products: product, likes: obj })
+                            // console.log(product, 'likes: ' + obj)
+                            products.push({ product, 'likes': obj })
+                                // console.log(products)
+                        }
+                        res.json(products)
+                    })
+                    // console.log(JSON.parse(products))
+                    // res.json({ product: product, likes: like })
+                    // console.log(product.name)
             })
-        }
-
-        res.json(products)
+            // JSON.stringify(products);
             // console.log(products)
-
-        // viewProducts.forEach(product => {
-        //         client.get(product.name, (err, obj) => {
-        //                 if (err) console.log(err)
-        //                 else {
-        //                     // res.json({ Products: product, likes: obj })
-        //                     // console.log(product, 'likes: ' + obj)
-        //                     products.push({ product, 'likes': obj })
-        //                         // console.log(products)
-        //                 }
-        //                 res.json(products)
-        //             })
-        //             // console.log(JSON.parse(products))
-        //             // res.json({ product: product, likes: like })
-        //             // console.log(product.name)
-        //     })
-        // JSON.stringify(products);
-        // console.log(products)
 
     } catch (err) {
         if (err) {
