@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 
+/**
+ * Schema model for Users collection in Mongo DB
+ */
 const userSchema = {
     name: {
         type: String,
@@ -19,4 +22,7 @@ const userSchema = {
     }
 }
 
-module.exports = mongoose.model('Users', userSchema);
+/**
+ * Users collection schema structure model
+ */
+module.exports.userModel = mongoose.model('Users', userSchema);

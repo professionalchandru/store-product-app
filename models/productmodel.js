@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 
+/**
+ * Schema model for Products collection in Mongo DB
+ */
 const productSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -21,16 +24,16 @@ const productSchema = new mongoose.Schema({
     description: {
         type: String
     },
-    insertedAt: {
+    created_dt: {
         type: Date,
         default: Date.now
     },
-    // likes: {
-    //     type: Number
-    // },
     likedBy: {
         type: Array
     }
 });
 
-module.exports = mongoose.model('Products', productSchema);
+/**
+ * Product collection schema structure model
+ */
+module.exports.productModel = mongoose.model('Products', productSchema);

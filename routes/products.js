@@ -2,96 +2,176 @@ const router = require('express').Router();
 const redis = require('redis');
 const client = redis.createClient();
 
-//Import product model for mongoose schema
-const productModel = require('../models/productmodel');
+//import controller class for new product model
+const { productModelInstance } = require('../controllers/productcontroller');
 
 //import validatation for products
-const { insertProductValidation, editProductValidation } = require('../validation');
+const { insertProductValidation, editProductValidation, searchProductValidation } = require('../validation');
 
 //Import JWT tokens as authentication middleware
 const auth = require('../middlewares/auth');
 
-
-//Insert view
+/**
+ * Add products view engine user interface call 
+ * @async
+ */
 router.get('/insert', auth, async(req, res) => {
     res.render('addproducts')
 })
 
-//Insert products
+/**
+ * create new product and sotred in mongodb
+ * @async
+ * @returns {Promise} new product
+ * @
+ */
 router.post('/insert', auth, async(req, res) => {
-    const product = new productModel({
-        name: req.body.name,
-        category: req.body.category,
-        price: req.body.price,
-        quantity: req.body.quantity,
-        description: req.body.description,
-    });
-    // client.hgetall(productName, (err, obj) => {
-    //     if (err) {
-    //         console.log(err)
-    //     } else {
-    //         obj.name = productName
-    //         console.log(obj)
-    //     }
-    // })
-
     //Validate products
-    const validate = insertProductValidation(product.toObject());
-
+    const validate = insertProductValidation(req.body);
     if (validate.error == null) {
+
         try {
-            const newProduct = await product.save();
-            // res.status(200).send(newProduct);
-            res.status(200).render('addproducts', { success: newProduct.name + ' is added successfully' })
+            //Create Product insance for Product class
+            const productInstance = productModelInstance();
+            const verifyProductData = {
+                name: req.body.name
+            }
+
+            //Get the products form DB using product class
+            const searchProduct = await searchData(verifyProductData)
+            if (searchProduct) return res.render('search', { error: verifyProductData.name + ' is already available' })
+
+            let productData = {
+                name: req.body.name,
+                category: req.body.category,
+                price: req.body.price,
+                quantity: req.body.quantity,
+                description: req.body.description
+            }
+
+            let insertedProduct = await productInstance.createProduct(productData)
+
+            res.status(200).render('addproducts', { success: insertedProduct.name + ' is added successfully' })
         } catch (err) {
             if (err) {
                 console.log(err);
-                res.status(400).send(err);
+                res.status(400).render('addproducts', { error: err })
             }
         }
     } else {
         console.log(validate.error.message);
-        // res.status(400).send(validate.error.message);
         res.status(400).render('addproducts', { error: validate.error.message })
     }
 
 });
 
-//search products
+/**
+ * search products view engine userinterface call
+ *@async  
+ */
 router.get('/search', auth, async(req, res) => {
     res.render('search')
 });
 
+/**
+ * search products form Products collection
+ * @async  
+ * @returns {Promise} searched product
+ */
 router.post('/search', auth, async(req, res, next) => {
-    const viewProducts = await productModel.findOne({ name: req.body.name })
-    if (!viewProducts) return res.render('search', { error: 'Product is not available' })
-    const name = req.body.name
-    product = viewProducts
-    pname = product.name
-    pcategory = product.category
-    pquantity = product.quantity
-    pprice = product.price
-    pdescription = product.description
-    plikedby = product.likedBy
 
-    client.get(name, (err, obj) => {
-        if (err) return res.render('search', { error: err })
-        else {
-            res.render('viewproducts', {
-                pname: pname,
-                pcategory: pcategory,
-                pquantity: pquantity,
-                pprice: pprice,
-                pdescription: pdescription,
-                plikedby: plikedby,
-                likes: obj
-            })
+    //Validate proucts using joi
+    const validate = searchProductValidation(req.body);
+    if (validate.error == null) {
+        const verifyProductData = {
+            name: req.body.name
         }
-    })
+
+        //Get the products form DB using product class
+        const searchProduct = await searchData(verifyProductData)
+        if (!searchProduct) return res.render('search', { error: verifyProductData.name + ' is not available' })
+
+        //Data should fill in viewproducts handlebars
+        let name = verifyProductData.name
+        let product = searchProduct
+        let pname = product.name
+        let pcategory = product.category
+        let pquantity = product.quantity
+        let pprice = product.price
+        let pdescription = product.description
+        let plikedby = product.likedBy
+
+        //Fill the view products handlebars
+        client.get(name, (err, obj) => {
+            if (err) return res.render('search', { error: err })
+            else {
+                res.render('viewproducts', {
+                    pname: pname,
+                    pcategory: pcategory,
+                    pquantity: pquantity,
+                    pprice: pprice,
+                    pdescription: pdescription,
+                    plikedby: plikedby,
+                    likes: obj
+                })
+            }
+        })
+    } else {
+        return res.render('search', { error: validate.error.message });
+    }
+})
+
+/**
+ * TODO WILL BE REMOVED IN PRODUCTION 
+ * Search product directly without submit data. Developer purpose only
+ */
+router.get('/:name', auth, async(req, res) => {
+    try {
+        const verifyProductData = {
+            name: req.params.name
+        }
+
+        //Get the products form DB using product class
+        const searchProduct = await searchData(verifyProductData)
+        if (!searchProduct) return res.render('search', { error: 'Product is not available' })
+
+        // Data should fill in viewproducts handlebars
+        let name = productData.name
+        let product = searchProduct
+        let pname = product.name
+        let pcategory = product.category
+        let pquantity = product.quantity
+        let pprice = product.price
+        let pdescription = product.description
+        let plikedby = product.likedBy
+
+        //fill in viewproducts handlebars
+        client.get(name, (err, obj) => {
+            if (err) console.log(err)
+            else {
+                res.render('viewproducts', {
+                    pname: pname,
+                    pcategory: pcategory,
+                    pquantity: pquantity,
+                    pprice: pprice,
+                    pdescription: pdescription,
+                    plikedby: plikedby,
+                    likes: obj
+                })
+            }
+        })
+    } catch (err) {
+        res.json(err)
+    }
 })
 
 
-//View Products(list)
+/**
+ * TODO LIST THE PRODUCTS IN DASHBOARD SHOULD BE MODIFY IN FURTHER UPDATES
+ * List the all products in dashabord, view engine user interface call
+ * @async
+ * @returns All products in collection
+ */
 router.get('/view', auth, async(req, res) => {
     try {
         const viewProducts = await productModel.find()
@@ -99,11 +179,12 @@ router.get('/view', auth, async(req, res) => {
         if (!viewProducts) return res.status(200).send('No product is available');
 
         res.render('list', {
-                product: viewProducts
-            })
-            // let products = {};
-            // let key = 'product'
-            // products[key] = [];
+            product: viewProducts
+        })
+
+        // let products = {};
+        // let key = 'product'
+        // products[key] = [];
 
         // for (let i = 0; i < docCount; i++) {
         //     client.get(viewProducts[i].name, (err, obj) => {
@@ -132,76 +213,26 @@ router.get('/view', auth, async(req, res) => {
     }
 });
 
-// let i = client.incr('abc2', (err, reply) => {
-//     if (err) console.log(err)
-//     else(console.log('reply ' + reply))
-// });
-
-
-// client.get('abc2', (err, obj) => {
-//     if (err) console.log(err)
-//     else console.log(obj)
-// })
-
-
-//view single product
-router.get('/:name', auth, async(req, res) => {
-    try {
-        const viewProducts = await productModel.findOne({ name: req.params.name })
-        if (!viewProducts) return res.status(200).send('product is not available');
-        let name = req.params.name
-        product = viewProducts
-        pname = product.name
-        pcategory = product.category
-        pquantity = product.quantity
-        pprice = product.price
-        pdescription = product.description
-        plikedby = product.likedBy
-
-        client.get(name, (err, obj) => {
-                if (err) console.log(err)
-                else {
-                    res.render('viewproducts', {
-                        pname: pname,
-                        pcategory: pcategory,
-                        pquantity: pquantity,
-                        pprice: pprice,
-                        pdescription: pdescription,
-                        plikedby: plikedby,
-                        likes: obj
-                    })
-                }
-            })
-            // client.get(name, (err, obj) => {
-            //         if (err) console.log(err)
-            //         else {
-            //             res.json({ viewProducts: viewProducts, likes: obj })
-            //                 // obj.name = name
-            //                 // res.render('viewproducts', {
-            //                 //     products: viewProducts,
-            //                 //     likes: obj
-            //                 // })
-            //         }
-            //     })
-            // client.get(name, (err, obj) => {
-            //     if (err) console.log(err)
-            //     else console.log(obj)
-            // })
-
-    } catch (err) {
-        res.json(err)
-    }
-})
-
-//Edit view
+/**
+ * Edit products view engine user interface call
+ * @async
+ */
 router.get('/edit/:name', async(req, res) => {
-    const product = await productModel.findOne({ name: req.params.name });
+    const verifyProductData = {
+        name: req.params.name
+    }
+
+    //Get the products form DB using product class
+    const product = await searchData(verifyProductData)
+
+    //Data to be filled in textboxes
     pname = product.name
     category = product.category
     price = product.price
     quantity = product.quantity
     description = product.description
 
+    //render the template
     res.render('editproducts', {
         pname: pname,
         category: category,
@@ -211,17 +242,46 @@ router.get('/edit/:name', async(req, res) => {
     })
 })
 
-//Edit Product
+/**
+ * Edit the product and store it again in Products collection
+ * @async
+ * @returns {Promise} updated product
+ */
 router.patch('/edit/:name', auth, async(req, res) => {
     //Validate product
     const validate = editProductValidation(req.body);
     if (validate.error == null) {
         try {
-            const product = await productModel.findOne({ name: req.params.name });
-            if (!product) return res.status(400).render('search', { error: req.params.name + ' is Invalid product' });
+            //Create Product insance for Product class
+            const productInstance = productModelInstance();
+            const verifyProductData = {
+                name: req.params.name
+            }
 
-            const editProduct = await productModel.updateOne({ name: req.params.name }, { $set: { name: req.body.name, category: req.body.category, price: req.body.price, quantity: req.body.quantity, description: req.body.description } });
-            res.render('editproducts', { success: req.params.name + ' Modified successfully' });
+            //Get the products form DB using product class
+            const product = await searchData(verifyProductData)
+            if (!product) return res.status(400).render('search', { error: verifyProductData.name + ' is Invalid product' });
+
+            const productData = {
+                oldName: req.params.name,
+                name: req.body.name,
+                category: req.body.category,
+                price: req.body.price,
+                quantity: req.body.quantity,
+                description: req.body.description
+            }
+
+            const editProduct = await productInstance.editProduct(productData);
+
+            //Update likes on new product name if product name changes
+            if (productData.oldName != productData.name) {
+                client.get(productData.oldName, (err, obj) => {
+                        client.set(productData.name, obj)
+                    })
+                    //Delete likes on old productname
+                client.del(productData.oldName)
+            }
+            res.render('editproducts', { success: req.params.name + ' Modified successfully to ' + req.body.name });
         } catch (err) {
             if (err) {
                 console.log(err);
@@ -230,30 +290,40 @@ router.patch('/edit/:name', auth, async(req, res) => {
         }
     } else {
         console.log(validate.error.message);
-        res.status(400).render('viewproducts', { error: validate.error.message });
+        res.status(400).render('editproducts', { error: validate.error.message });
     }
 });
 
-//Edit Product Likes
+/**
+ * Update likes by each click on userinterface
+ * @async
+ * @returns Like for purticular product on redis database
+ */
 router.patch('/like/:name', auth, async(req, res) => {
-    //Validate product
-    // const validate = editProductLikeValidation(req.body);
-    // if (validate.error == null) {
     try {
+        //Create Product insance for Product class
+        const productInstance = productModelInstance();
+        const verifyProductData = {
+            name: req.params.name
+        }
 
-        //Check if product is avaliable
-        const product = await productModel.findOne({ name: req.params.name });
-        if (!product) return res.status(400).send(req.params.name + ' is Invalid product');
+        //Get the products form DB using product class
+        const product = await searchData(verifyProductData)
+        if (!product) return res.status(400).render('search', { error: verifyProductData.name + ' is Invalid product' });
+
+        const emailData = {
+            name: req.params.name,
+            email: req.user.email
+        }
 
         //Check user if already liked
-        const email = req.user.email
-        const likedUser = await productModel.findOne({ name: req.params.name, likedBy: email });
-        let name = req.params.name
+        const likedUser = await productInstance.searchProductByEmail(emailData);
+        // const likedUser = await productModel.findOne({ name: req.params.name, likedBy: email });
         if (likedUser) {
-            // return res.redirect('/api/products/:name')
             res.status(400).render('viewproducts', { error: 'You are already liked' })
         }
 
+        //Update likes on redis server
         if (likedUser == null) {
             let name = req.params.name
             const likes = client.incrby(name, 1, (err, reply) => {
@@ -264,20 +334,13 @@ router.patch('/like/:name', auth, async(req, res) => {
                 }
             })
 
-            // client.hget(product.name, (err, obj) => {
-            //     if (err) console.log(err)
-            //     else console.log(obj)
-            // })
-
+            //Update liked users on mongodb           
             if (likes) {
-                const likedby = await productModel.updateOne({ name: req.params.name }, { $push: { likedBy: req.user.email } });
-
-                // const like = await productModel.updateOne({ name: req.params.name }, { $push: { likedBy: req.user.email }, $inc: { likes: 1 } });
-                // res.send('Likes added for ' + req.params.name + ' successfully.');
-                // res.redirect('/api/products/req.params.name')
-                res.status(200).render('viewproducts', { succes: 'You are liked this products' })
+                const likedby = await productInstance.updateLikes(emailData);
+                // const likedby = await productModel.updateOne({ name: req.params.name }, { $push: { likedBy: req.user.email } });
+                res.status(200).render('viewproducts', { success: 'You are liked this products' })
             } else {
-                console.log('problems in putting like on redis')
+                res.status(400).send('Some error occured')
             }
 
         }
@@ -287,43 +350,46 @@ router.patch('/like/:name', auth, async(req, res) => {
             res.json(err)
         }
     }
-    // } else {
-    //     console.log(validate.error.message);
-    //     // res.status(400).json({ message: validate.error.message });
-    //     res.status(400).render('viewproducts', { error: validate.error.message })
-    // }
 });
 
-// Delete the product
+/**
+ * Delete the product in Products collection
+ * @async
+ * @returns {Promise} Deleted the product
+ */
 router.delete('/:name', auth, async(req, res) => {
     try {
-        const product = await productModel.findOne({ name: req.params.name });
-        if (!product) return res.status(400).send(req.params.name + ' is Invalid product');
+        //Create Product insance for Product class
+        const productInstance = productModelInstance();
+        const productData = {
+            name: req.params.name
+        }
 
-        const deleteProduct = await productModel.deleteOne({ name: req.params.name });
-        res.render('search', { success: req.params.name + ' is deleted successfully' });
-        // res.json(deleteProduct);
+        //Get the products form DB using product class
+        const product = await searchData(verifyProductData)
+        if (!product) return res.status(400).render('search', { error: productData.name + ' is Invalid product' });
+
+        //Delete products and likes
+        const deleteProduct = await productInstance.deleteProduct(productData);
+        client.del(productData.name);
+        res.render('search', { success: productData.name + ' is deleted successfully' });
     } catch (err) {
         if (err) {
-            console.log(err)
-            res.json({ message: err });
+            res.status(400).render('viewproducts', { error: err });
         }
     }
 });
 
-
-
-// router.patch('/:name/:li', (req, res) => {
-//     let name = req.params.name
-//     let myhash = req.params.name
-//     client.hset(myhash, name, 0, (err, reply) => {
-//         if (err) console.log(err)
-//         else console.log(reply)
-//     })
-//     client.incr('name', (err, reply) => {
-//         if (err) console.log(err)
-//         else console.log(reply)
-//     })
-// })
+/**
+ * Search fucition for already avaliable data
+ * @async
+ * @param {String} name of the product
+ * @returns searchProduct
+ */
+async function searchData(verifyProductData) {
+    const productInstance = productModelInstance();
+    const searchProduct = await productInstance.searchProduct(verifyProductData);
+    return searchProduct
+}
 
 module.exports = router;
