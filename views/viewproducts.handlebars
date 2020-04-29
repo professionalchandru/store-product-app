@@ -21,7 +21,7 @@
     </ul>
 </div>
 <div>
-    <form action="/api/products/like/{{pname}}?_method=PATCH" method="POST">
+    <form action="/api/products/like/{{pid}}?_method=PATCH" method="POST">
         <button type="submit" style="float: left; margin: 2px;" class="btn btn-primary">
             <i class="fa fa-thumbs-up" aria-hidden="true">Like</i>
         </button>
@@ -29,12 +29,12 @@
 </div>
 <div>
     <a href="/api/products/search" class="btn btn-success" style="float: left;  margin: 2px;">Back</a>
-    <form action="/api/products/edit/{{pname}}?_method=GET" method="POST">
+    <form action="/api/products/edit/{{pid}}?_method=GET" method="POST">
         <button type="submit" style="float: left; margin: 2px;" class="btn btn-warning">
             <i class="fa fa-thumbs-up" aria-hidden="true">Edit</i>
         </button>
     </form>
-    <form method="POST" action="/api/products/{{pname}}?_method=DELETE">
+    <form method="POST" action="/api/products/{{pid}}?_method=DELETE">
         <input type="submit" style=" margin: 2px;" class="btn btn-danger" value="Delete">
     </form>
 </div>
