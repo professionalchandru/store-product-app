@@ -1,0 +1,291 @@
+<template>
+  <div>
+    <Header />
+    <b-container class="bv-example-row">
+      <!-- <button @click="logout" class="logout">Logout</button> -->
+      <h1>Products Available</h1>
+      <b-alert show variant='danger' v-if='error'>{{ error }}</b-alert>
+      <b-alert show variant='success' v-if='success'>{{ success }}</b-alert>
+      <b-row>
+          <div
+            class='bcard'
+            v-for='(product, index) in products'
+            :item='product'
+            :index='index'
+            :key='product._id'
+          >
+          <b-col>
+            <b-card no-body style='max-width: 25rem;'>
+              <template v-slot:header>
+                <b-icon-heart-fill
+                  style='color: red;'
+                  class='like'
+                  animation="throb"
+                ></b-icon-heart-fill
+                >{{ product.like }}
+                <h4 class='mb-0 bcard-header'>{{ product.name }}</h4>
+              </template>
+              <b-card-body class="products">
+                <b-card-title
+                  ><label for='category'>Category:</label>
+                  {{ product.category }}</b-card-title
+                >
+                <b-card-text>
+                  {{ product.description }}
+                </b-card-text>
+              </b-card-body>
+
+              <b-list-group flush>
+                <b-list-group-item class="products currency">
+                  {{ product.price | currency }}
+                </b-list-group-item>
+                <b-list-group-item class="products">
+                  <label for='quantity'>quantity Remaining: </label>
+                  {{ product.quantity }}</b-list-group-item
+                >
+              </b-list-group>
+
+              <b-card-footer class="products">
+                <label for='LikedBy'>LikedBy: </label>
+                {{ product.likedBy.toString() }}
+              </b-card-footer>
+              <b-card-body>
+                <p class='created-date'>
+                  <label for='Date'>Date: </label>
+                  {{
+                    `${product.created_dt.getDate()}/
+                ${product.created_dt.getMonth()}/
+                ${product.created_dt.getFullYear()}
+              `
+                  }}
+                </p>
+                <div>
+                  <!-- TODO ACTIVE THIS FOR STYLED CONFIRM BOX
+                       ERROR: Running each time for every delete button on single click
+                  -->
+                  <!-- <div>
+                      <b-button v-b-modal.modal-1
+                    class='btn btn-danger'
+                    >
+                    <b-icon-trash class='icons'></b-icon-trash>Delete
+                    </b-button>
+
+                    <b-modal id="modal-1" title="Confirm delete" ok-variant="danger" @click="deleteProduct(product._id)">
+                      <p class="my-4">Confirm to delete {{ product.name }}</p>
+                    </b-modal>
+                  </div> -->
+                  <button class='btn btn-warning' id="editbtn"
+                  @click="editProduct(product._id)"
+                  >
+                    <b-icon-pencil-square class='icons'></b-icon-pencil-square>
+                    Edit
+                  </button>
+                  <button
+                    class='btn btn-danger'
+                    @click="deleteProduct(product._id)"
+                  >
+                    <b-icon-trash class='icons'></b-icon-trash>
+                    Delete
+                  </button>
+                </div>
+              </b-card-body>
+            </b-card>
+            </b-col>
+        </div>
+      </b-row>
+    </b-container>
+  </div>
+</template>
+
+<script>
+import ProductService from '../service/productService'
+import router from '../router/index'
+import Header from '../components/layouts/Header'
+
+export default {
+  name: 'HomeComponent',
+  components: {
+    Header
+  },
+  data () {
+    return {
+      products: [],
+      error: '',
+      success: ''
+    }
+  },
+  methods: {
+    async deleteProduct (id) {
+      if (window.confirm('Are you sure to delete')) {
+        const result = await ProductService.deleteProduct(id)
+        if (result.success) {
+          this.success = result.success
+          this.error = ''
+          this.products = await ProductService.getProducts()
+        }
+        if (result.error) {
+          this.error = result.error
+          this.success = ''
+        }
+      }
+    },
+    async editProduct (id) {
+      router.push({ path: `/editproduct/${id}` })
+    }
+  },
+  async created () {
+    // unauthourised user
+    localStorage.getItem('tokenvariable')
+    if (sessionStorage.getItem('token') === null) {
+      this.$emit('session', 'Oops...! Session Expired')
+      router.push({ path: '/login' })
+    }
+    try {
+      const result = await ProductService.getProducts()
+      if (result.session) {
+        this.$router.push('/session')
+      }
+      this.products = result
+    } catch (err) {
+      this.error = err.message
+    }
+  }
+}
+</script>
+
+<style scoped>
+div.container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+div.bcard {
+  margin: 5px;
+}
+
+.icons {
+  margin-right: 5px;
+  margin-left: 5px;
+}
+
+p.error {
+  border: 1px solid #ff5b5f;
+  background: #ffc5c1;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.products {
+  background: gainsboro;
+  color: black;
+}
+
+.currency{
+  font-weight: 600;
+}
+
+.created-at {
+  color: blue;
+  font-size: 13px;
+}
+
+.btn {
+  margin: 5px;
+  border-radius: 10px;
+}
+
+p.created-date {
+  text-align: right;
+  margin: 1px;
+  color: darkgrey;
+}
+.like {
+  float: right;
+}
+
+.bcard-header{
+  /* color: rgb(33, 102, 143); */
+  color: blue;
+}
+
+.logout{
+  background: blueviolet;
+  color: white;
+  float: right;
+  margin-right: 15px;
+  border-radius: 8px
+}
+</style>
+
+
+<template>
+  <div>
+    <link rel="stylesheet" href="https://bootswatch.com/4/pulse/bootstrap.min.css">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <a class="navbar-brand" href="#">Products App</a>
+       <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
+      <!-- <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor01" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button> -->
+
+      <div class="collapse navbar-collapse" id="navbarColor01">
+        <ul class="navbar-nav mr-auto">
+          <li>
+            <router-link class="nav-link" to="/">Home</router-link>
+          </li>
+          <li class="nav-item">
+            <router-link class="nav-link" to="/AddProduct">Add Products</router-link>
+          </li>
+        </ul>
+        <b-badge pill variant="success" class="logout">
+        <b-icon-person-fill class="icons"></b-icon-person-fill>
+        {{decoded.name}}
+        </b-badge>
+        <a class="logout" @click="logout">Logout</a>
+      </div>
+    </nav>
+  </div>
+</template>
+
+<script>
+export default {
+  data () {
+    return {
+      decoded: {
+        name: '',
+        email: ''
+      }
+    }
+  },
+  methods: {
+    logout () {
+      localStorage.clear()
+      sessionStorage.clear()
+      this.$router.push('/login')
+    }
+  },
+  created () {
+    const token = sessionStorage.getItem('token')
+    const decoded = this.$jwt.decode(token)
+    this.decoded.name = decoded.name
+    this.decoded.email = decoded.email
+  }
+}
+</script>
+
+<style scoped>
+  .navbar{
+    margin-bottom: 15px;
+  }
+  .logout{
+    color: rgba(255,255,255,0.5);
+    font-size: 15px;
+    margin-right: 5px;
+    margin-left: 5px;
+  }
+  .logout:hover{
+    color: rgba(255,255,255,0.9);
+    cursor: pointer;
+  }
+</style>
+
